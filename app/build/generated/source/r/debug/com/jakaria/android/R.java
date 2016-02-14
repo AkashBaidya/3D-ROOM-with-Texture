@@ -11,13 +11,17 @@ public final class R {
     public static final class attr {
     }
     public static final class drawable {
-        public static final int ic_launcher=0x7f020000;
+        public static final int brick_texture=0x7f020000;
+        public static final int door_texture=0x7f020001;
+        public static final int ic_launcher=0x7f020002;
     }
     public static final class raw {
         public static final int point_fragment_shader=0x7f030000;
         public static final int point_vertex_shader=0x7f030001;
         public static final int simple_fragment_shader=0x7f030002;
         public static final int simple_vertex_shader=0x7f030003;
+        public static final int texture_fragment_shader=0x7f030004;
+        public static final int texture_vertex_shader=0x7f030005;
     }
     public static final class string {
         public static final int app_name=0x7f040000;

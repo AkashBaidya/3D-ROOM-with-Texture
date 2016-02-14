@@ -34,6 +34,7 @@ import com.jakaria.android.R;
 import com.jr3dL.android.util.LoggerConfig;
 import com.jr3dL.android.util.ShaderHelper;
 import com.jr3dL.android.util.TextResourceReader;
+import com.jr3dL.android.util.TextureHelper;
 
 public class Jr3DLRenderer implements Renderer {
 
@@ -55,6 +56,7 @@ public class Jr3DLRenderer implements Renderer {
     private final FloatBuffer mCubeColorDoor;
     private final FloatBuffer mCubeColorMatress;
     private final FloatBuffer mCubeNormals;
+    private final FloatBuffer mCubeTextureCoordinates;
     private final Context context;
     
     private float[] ViewMatrix = new float[16];
@@ -66,13 +68,25 @@ public class Jr3DLRenderer implements Renderer {
     private float[] mLightModelMatrix = new float[16];
 
     private int program;
+    private int textureprogram;
     private int pointProgram;
     private int uMatrixLocation;
     private int mPositionHandle;
     private int mMVMatrixHandle;
-	
-	/** This will be used to pass in model color information. */
+
+    /** This is a handle to our texture data. */
+    private int mTextureDataHandle;
+
+    /** This will be used to pass in the texture. */
+    private int mTextureUniformHandle;
+    /** This will be used to pass in model texture coordinate information. */
+    private int mTextureCoordinateHandle;
+
+
+    /** This will be used to pass in model color information. */
 	private int mColorHandle;
+
+
 	
 	/** This will be used to pass in the light position. */
 	private int mLightPosHandle;
@@ -88,6 +102,8 @@ public class Jr3DLRenderer implements Renderer {
 	
 	/** Size of the normal data in elements. */
 	private final int mNormalDataSize = 3;
+    /** Size of the texture coordinate data in elements. */
+    private final int mTextureCoordinateDataSize = 2;
 	
     private final float[] mLightPosInModelSpace = new float[] {0.0f, 0.0f, 0.0f, 1.0f};
 	
@@ -100,6 +116,57 @@ public class Jr3DLRenderer implements Renderer {
 
     public Jr3DLRenderer(Context context) {
         this.context = context;
+
+        final float[] cubeTextureCoordinateData =
+                {
+                        // Front face
+                        0.0f, 0.0f,
+                        0.0f, 1.0f,
+                        1.0f, 0.0f,
+                        0.0f, 1.0f,
+                        1.0f, 1.0f,
+                        1.0f, 0.0f,
+
+                        // Right face
+                        0.0f, 0.0f,
+                        0.0f, 1.0f,
+                        1.0f, 0.0f,
+                        0.0f, 1.0f,
+                        1.0f, 1.0f,
+                        1.0f, 0.0f,
+
+                        // Back face
+                        0.0f, 0.0f,
+                        0.0f, 1.0f,
+                        1.0f, 0.0f,
+                        0.0f, 1.0f,
+                        1.0f, 1.0f,
+                        1.0f, 0.0f,
+
+                        // Left face
+                        0.0f, 0.0f,
+                        0.0f, 1.0f,
+                        1.0f, 0.0f,
+                        0.0f, 1.0f,
+                        1.0f, 1.0f,
+                        1.0f, 0.0f,
+
+                        // Top face
+                        0.0f, 0.0f,
+                        0.0f, 1.0f,
+                        1.0f, 0.0f,
+                        0.0f, 1.0f,
+                        1.0f, 1.0f,
+                        1.0f, 0.0f,
+
+                        // Bottom face
+                        0.0f, 0.0f,
+                        0.0f, 1.0f,
+                        1.0f, 0.0f,
+                        0.0f, 1.0f,
+                        1.0f, 1.0f,
+                        1.0f, 0.0f
+                };
      
         
         final float[] cubePositionData =
@@ -449,6 +516,10 @@ public class Jr3DLRenderer implements Renderer {
     		mCubeNormals = ByteBuffer.allocateDirect(cubeNormalData.length * BYTES_PER_FLOAT)
             .order(ByteOrder.nativeOrder()).asFloatBuffer();							
     		mCubeNormals.put(cubeNormalData).position(0);
+
+        mCubeTextureCoordinates = ByteBuffer.allocateDirect(cubeTextureCoordinateData.length * BYTES_PER_FLOAT)
+                .order(ByteOrder.nativeOrder()).asFloatBuffer();
+        mCubeTextureCoordinates.put(cubeTextureCoordinateData).position(0);
     }
 
     @Override
@@ -500,6 +571,22 @@ public class Jr3DLRenderer implements Renderer {
 		            ShaderHelper.validateProgram(pointProgram);
 		        }
 
+   //////////////////////  Texture Programm /////////////////////
+        String vertexShaderSource2 = TextResourceReader
+                .readTextFileFromResource(context, R.raw.texture_vertex_shader);
+        String fragmentShaderSource2 = TextResourceReader
+                .readTextFileFromResource(context, R.raw.texture_fragment_shader);
+
+        int vertexShader2 = ShaderHelper.compileVertexShader(vertexShaderSource2);
+        int fragmentShader2 = ShaderHelper
+                .compileFragmentShader(fragmentShaderSource2);
+
+        textureprogram = ShaderHelper.linkProgram(vertexShader2, fragmentShader2);
+
+        if (LoggerConfig.ON) {
+            ShaderHelper.validateProgram(textureprogram);
+        }
+
 				
 ///////////////////////////////////////////////// program////////////				
         String vertexShaderSource = TextResourceReader
@@ -520,6 +607,8 @@ public class Jr3DLRenderer implements Renderer {
         glUseProgram(program);
         
         uMatrixLocation = glGetUniformLocation(program, U_MATRIX);
+
+        mTextureDataHandle = TextureHelper.loadTexture(context, R.drawable.brick_texture);
         
     }
 
@@ -560,6 +649,9 @@ public class Jr3DLRenderer implements Renderer {
         mMVMatrixHandle = GLES20.glGetUniformLocation(program, "u_MVMatrix"); 
         mLightPosHandle = GLES20.glGetUniformLocation(program, "u_LightPos");
         mNormalHandle = GLES20.glGetAttribLocation(program, "a_Normal");
+
+
+
         
         
         // Calculate position of the light. Rotate and then push into the distance.
@@ -603,10 +695,10 @@ public class Jr3DLRenderer implements Renderer {
         drawCube(COLOR_WALL);
 
         //Back Wall
-        Matrix.setIdentityM(modelMatrix, 0);
+        /*Matrix.setIdentityM(modelMatrix, 0);
         Matrix.translateM(modelMatrix, 0, 0.0f, 0.0f, -9.0f);
         Matrix.scaleM(modelMatrix, 0, 4.0f, 2.0f, 0.5f);
-        drawCube(COLOR_WALL);
+        drawCube(COLOR_WALL);*/
 
         //Right wall
         Matrix.setIdentityM(modelMatrix, 0);
@@ -671,6 +763,25 @@ public class Jr3DLRenderer implements Renderer {
         Matrix.setIdentityM(modelMatrix, 0);
         Matrix.translateM(modelMatrix, 0, 1.0f, 1.0f, -5.0f);
         drawLight();
+
+        GLES20.glUseProgram(textureprogram);
+        mTextureUniformHandle = GLES20.glGetUniformLocation(textureprogram, "u_Texture");
+        mTextureCoordinateHandle = GLES20.glGetAttribLocation(textureprogram, "a_TexCoordinate");
+
+        // Set the active texture unit to texture unit 0.
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+
+        // Bind the texture to this unit.
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextureDataHandle);
+
+        // Tell the texture uniform sampler to use this texture in the shader by binding to texture unit 0.
+        GLES20.glUniform1i(mTextureUniformHandle, 0);
+        Matrix.setIdentityM(modelMatrix, 0);
+        Matrix.translateM(modelMatrix, 0, 0.0f, 0.0f, -9.0f);
+        Matrix.scaleM(modelMatrix, 0, 4.0f, 2.0f, 0.5f);
+        drawCube(COLOR_WALL);
+
+
     }
     
     
@@ -731,7 +842,65 @@ public class Jr3DLRenderer implements Renderer {
         // Draw the cube.
         GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 36);      
 	}
-    
+
+
+    private void drawTexture(int val)
+    {
+
+        mPositionHandle = glGetAttribLocation(textureprogram, A_POSITION);
+        mColorHandle = glGetAttribLocation(textureprogram, A_COLOR);
+
+        // Pass in the position information
+        mCubePositions.position(0);
+        GLES20.glVertexAttribPointer(mPositionHandle, mPositionDataSize, GLES20.GL_FLOAT, false,
+                0, mCubePositions);
+
+        GLES20.glEnableVertexAttribArray(mPositionHandle);
+
+        // Pass in the color information
+        if(val==COLOR_WALL) {
+
+
+            mCubeColorswall.position(0);
+            GLES20.glVertexAttribPointer(mColorHandle, mColorDataSize, GLES20.GL_FLOAT, false,
+                    0, mCubeColorswall);
+        }
+        else if(val==COLOR_BED){
+
+            mCubeColorsBed.position(0);
+            GLES20.glVertexAttribPointer(mColorHandle, mColorDataSize, GLES20.GL_FLOAT, false,
+                    0, mCubeColorsBed);
+        }
+        else if (val==COLOR_DOOR){
+            mCubeColorDoor.position(0);
+            GLES20.glVertexAttribPointer(mColorHandle, mColorDataSize, GLES20.GL_FLOAT, false,
+                    0, mCubeColorDoor);
+        }
+        else if(val==COLOR_MATTRESS){
+            mCubeColorMatress.position(0);
+            GLES20.glVertexAttribPointer(mColorHandle, mColorDataSize, GLES20.GL_FLOAT, false,
+                    0, mCubeColorMatress);
+        }
+
+
+        // Pass in the normal information
+        mCubeNormals.position(0);
+        GLES20.glVertexAttribPointer(mNormalHandle, mNormalDataSize, GLES20.GL_FLOAT, false,
+                0, mCubeNormals);
+
+        GLES20.glEnableVertexAttribArray(mColorHandle);
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 36);
+
+        Matrix.multiplyMM(mvMatrix, 0, ViewMatrix, 0, modelMatrix, 0);
+        // Pass in the modelview matrix.
+        GLES20.glUniformMatrix4fv(mMVMatrixHandle, 1, false, mvMatrix, 0);
+        multiplyMM(FprojectionMatrix, 0, projectionMatrix, 0, mvMatrix, 0);
+        glUniformMatrix4fv(uMatrixLocation, 1, false, FprojectionMatrix, 0);
+        // Pass in the light position in eye space.
+        GLES20.glUniform3f(mLightPosHandle, mLightPosInEyeSpace[0], mLightPosInEyeSpace[1], mLightPosInEyeSpace[2]);
+        // Draw the cube.
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 36);
+    }
     /**
      * Draws a point representing the position of the light.
      */
