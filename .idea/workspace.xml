@@ -676,9 +676,9 @@
     <option name="changedFiles">
       <list>
         <option value="$PROJECT_DIR$/app/src/main/res/raw/point_fragment_shader.glsl" />
-        <option value="$PROJECT_DIR$/app/src/main/java/com/jr3dL/android/Jr3DLRenderer.java" />
         <option value="$PROJECT_DIR$/app/src/main/res/raw/simple_fragment_shader.glsl" />
         <option value="$PROJECT_DIR$/app/src/main/res/raw/point_vertex_shader.glsl" />
+        <option value="$PROJECT_DIR$/app/src/main/java/com/jr3dL/android/Jr3DLRenderer.java" />
       </list>
     </option>
   </component>
@@ -973,7 +973,7 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1382" height="744" extended-state="6" />
-    <editor active="true" />
+    <editor active="false" />
     <layout>
       <window_info id="Documentation" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="FLOATING" visible="false" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" x="92" y="92" width="1182" height="544" />
       <window_info id="Palette&#9;" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
